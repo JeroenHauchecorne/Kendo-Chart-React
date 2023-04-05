@@ -41,141 +41,145 @@ const dataPoints = getDataPoints(10, 30);
 console.log(dataPoints);
 const categories = dataPoints.map((x) => x.date);
 
-const plotBand = [
-  categories[Math.floor(categories.length / 4)],
-  categories[Math.floor(categories.length / 2)],
+const plotBands = [
+  {
+    from: categories[Math.floor(categories.length / 4)],
+    to: categories[Math.floor(categories.length / 2)],
+    color: "#ff3434d4",
+    opacity: 0.4,
+  },
 ];
 
-const markerTimestamp = categories[Math.floor(categories.length / 2)];
+const marker1Timestamp = categories[Math.floor(categories.length / 2)];
 
 const roundToDecimal = (number: number, decimal?: number) =>
   round(number, decimal);
 
+const series: ChartSeriesItemProps[] = [
+  {
+    type: "line",
+    data: dataPoints,
+    field: TEMPERATURE,
+    name: `Temperature [${TEMPERATURE_UMCELCIUS}]`,
+    color: "#ff1c1c",
+    axis: TEMPERATURE,
+    noteTextField: "hello",
+    aggregate: "avg",
+  },
+  {
+    type: "line",
+    data: dataPoints,
+    field: PRESSURE,
+    name: `Pressure [${PRESSURE_UM}]`,
+    color: "#2463e1",
+    axis: PRESSURE,
+    aggregate: "avg",
+  },
+  {
+    type: "line",
+    data: dataPoints,
+    field: FAN_SPEED,
+    name: `Fan Speed [${FANSPEED_UM}]`,
+    color: "#ab36ff60",
+    axis: FAN_SPEED,
+    aggregate: "avg",
+  },
+  {
+    type: "line",
+    data: dataPoints,
+    field: HUMIDITY,
+    name: `Humidity [%]`,
+    color: "#e8ff36",
+    axis: HUMIDITY,
+    aggregate: "avg",
+  },
+  {
+    type: "area",
+    data: dataPoints,
+    field: ON_OFF,
+    name: `Onoff`,
+    color: "#ff8a36",
+    axis: ON_OFF,
+    line: { style: "step" },
+    aggregate: "max",
+  },
+  {
+    type: "area",
+    data: dataPoints,
+    field: IN_DEFROST_STATE,
+    name: `InDefrostState`,
+    color: "#36a8ff",
+    axis: IN_DEFROST_STATE,
+    line: { style: "step" },
+    aggregate: "max",
+  },
+];
+
+const valueAxis: ChartValueAxisItemProps[] = [
+  {
+    name: TEMPERATURE,
+    visible: true,
+    labels: {
+      content: (e: any) =>
+        `${roundToDecimal(e.value, 1)} ${TEMPERATURE_UMCELCIUS}`,
+    },
+  },
+  {
+    name: PRESSURE,
+    visible: true,
+    labels: {
+      content: (e: any) => `${roundToDecimal(e.value)} ${PRESSURE_UM}`,
+    },
+  },
+  {
+    name: FAN_SPEED,
+    labels: {
+      content: (e: any) => `${roundToDecimal(e.value)} ${FANSPEED_UM}`,
+    },
+  },
+  {
+    name: HUMIDITY,
+    visible: true,
+    labels: {
+      content: (e: any) => `${roundToDecimal(e.value)} %`,
+    },
+  },
+  {
+    name: ON_OFF,
+    visible: true,
+    pane: ON_OFF,
+    majorGridLines: { visible: false },
+    majorTicks: { visible: false },
+    labels: { visible: false },
+    min: 0,
+    max: 1,
+    minorUnit: 0,
+    majorUnit: 1,
+  },
+  {
+    name: IN_DEFROST_STATE,
+    visible: true,
+    pane: IN_DEFROST_STATE,
+    majorGridLines: { visible: false },
+    majorTicks: { visible: false },
+    labels: { visible: false },
+    min: 0,
+    max: 1,
+    minorUnit: 0,
+    majorUnit: 1,
+  },
+];
+
 export const SimpleChart = () => {
-  const series: ChartSeriesItemProps[] = [
-    {
-      type: "line",
-      data: dataPoints,
-      field: TEMPERATURE,
-      name: `Temperature [${TEMPERATURE_UMCELCIUS}]`,
-      color: "#ff1c1c",
-      axis: TEMPERATURE,
-      noteTextField: "hello",
-      aggregate: "avg",
-    },
-    {
-      type: "line",
-      data: dataPoints,
-      field: PRESSURE,
-      name: `Pressure [${PRESSURE_UM}]`,
-      color: "#2463e1",
-      axis: PRESSURE,
-      aggregate: "avg",
-    },
-    {
-      type: "line",
-      data: dataPoints,
-      field: FAN_SPEED,
-      name: `Fan Speed [${FANSPEED_UM}]`,
-      color: "#ab36ff60",
-      axis: FAN_SPEED,
-      aggregate: "avg",
-    },
-    {
-      type: "line",
-      data: dataPoints,
-      field: HUMIDITY,
-      name: `Humidity [%]`,
-      color: "#e8ff36",
-      axis: HUMIDITY,
-      aggregate: "avg",
-    },
-    {
-      type: "area",
-      data: dataPoints,
-      field: ON_OFF,
-      name: `Onoff`,
-      color: "#ff8a36",
-      axis: ON_OFF,
-      line: { style: "step" },
-      aggregate: "max",
-    },
-    {
-      type: "area",
-      data: dataPoints,
-      field: IN_DEFROST_STATE,
-      name: `InDefrostState`,
-      color: "#36a8ff",
-      axis: IN_DEFROST_STATE,
-      line: { style: "step" },
-      aggregate: "max",
-    },
-  ];
-
-  const valueAxis: ChartValueAxisItemProps[] = [
-    {
-      name: TEMPERATURE,
-      visible: true,
-      labels: {
-        content: (e: any) =>
-          `${roundToDecimal(e.value, 1)} ${TEMPERATURE_UMCELCIUS}`,
-      },
-    },
-    {
-      name: PRESSURE,
-      visible: true,
-      labels: {
-        content: (e: any) => `${roundToDecimal(e.value)} ${PRESSURE_UM}`,
-      },
-    },
-    {
-      name: FAN_SPEED,
-      labels: {
-        content: (e: any) => `${roundToDecimal(e.value)} ${FANSPEED_UM}`,
-      },
-    },
-    {
-      name: HUMIDITY,
-      visible: true,
-      labels: {
-        content: (e: any) => `${roundToDecimal(e.value)} %`,
-      },
-    },
-    {
-      name: ON_OFF,
-      visible: true,
-      pane: ON_OFF,
-      majorGridLines: { visible: false },
-      majorTicks: { visible: false },
-      labels: { visible: false},
-      min: 0,
-      max: 1,
-      minorUnit: 0,
-      majorUnit: 1
-      
-    },
-    {
-      name: IN_DEFROST_STATE,
-      visible: true,
-      pane: IN_DEFROST_STATE,
-      majorGridLines: { visible: false },
-      majorTicks: { visible: false },
-      labels: { visible: false },
-      min: 0,
-      max: 1,
-      minorUnit: 0,
-      majorUnit: 1
-    },
-  ];
-
   const onRender = (event: RenderEvent) => {
     const chart = event.target.chartInstance;
     if (!chart) {
       return;
     }
 
+    // Draw the names of the boolean type bars
 
-    //// Doesn't work yet with panning & zooming 
+    //// Doesn't work yet with panning & zooming
     // drawMarkerOnTimestamp(markerTimestamp);
     function drawMarkerOnTimestamp(markerDate: Date) {
       // get the axes
@@ -203,12 +207,16 @@ export const SimpleChart = () => {
         .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
         .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
 
-      const label = new Text("Marker1: " + markerTimestamp.toUTCString(), [0, 0], {
-        fill: {
-          color: "red",
-        },
-        font: "14px sans",
-      });
+      const label = new Text(
+        "Marker1: " + marker1Timestamp.toUTCString(),
+        [0, 0],
+        {
+          fill: {
+            color: "red",
+          },
+          font: "14px sans",
+        }
+      );
       const bbox = label.bbox();
       label.position([
         catergorySlot.origin.x + 2,
@@ -256,14 +264,7 @@ export const SimpleChart = () => {
               baseUnit="auto"
               baseUnitStep="auto"
               axisCrossingValue={[0, 0, 0]}
-              plotBands={[
-                {
-                  from: plotBand[0],
-                  to: plotBand[1],
-                  color: "#ff3434d4",
-                  opacity: 0.4,
-                },
-              ]}
+              plotBands={plotBands}
               visible={false}
             />,
             <ChartCategoryAxisItem
@@ -288,7 +289,7 @@ export const SimpleChart = () => {
       </Chart>
       <br></br>
       <div>
-        ERROR ZONE: {plotBand[0].toUTCString()} - {plotBand[1].toUTCString()}
+        ERROR ZONE: {plotBands[0] && plotBands[0].from.toUTCString()} - {plotBands[0].to.toUTCString()}
       </div>
     </>
   );
