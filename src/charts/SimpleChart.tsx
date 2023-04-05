@@ -14,6 +14,9 @@ import {
   ChartLegendItem,
   RenderEvent,
   PlotAreaClickEvent,
+  ChartPanes,
+  ChartPane,
+  ValueAxisLabels,
 } from "@progress/kendo-react-charts";
 
 import "hammerjs";
@@ -23,15 +26,25 @@ import { getDataPoints } from "./getDataPoints";
 const TEMPERATURE_UMCELCIUS = "°C";
 const FANSPEED_UM = "CMS";
 const PRESSURE_UM = "kPa";
-const AXIS_PRESSURE = "pressure";
-const AXIS_FAN = "fan";
-const AXIS_TEMPERATURE = "temperature";
-const AXIS_HUMIDITY = "humidity";
+const PRESSURE = "pressure";
+const FAN_SPEED = "fanSpeed";
+const TEMPERATURE = "temperature";
+const HUMIDITY = "humidity";
+const ON_OFF = "onOff";
+const IN_DEFROST_STATE = "inDefrostState";
 
-const dataPoints = getDataPoints(60);
+const BOOLEAN_TYPE_BAR_HEIGHT = 30;
+
+const dataPoints = getDataPoints(10, 30);
+console.log(dataPoints);
 const categories = dataPoints.map((x) => x.date);
 
-const plotBand = [categories[1000], categories[2000]];
+const plotBand = [
+  categories[Math.floor(categories.length / 4)],
+  categories[Math.floor(categories.length / 2)],
+];
+
+const markerTimestamp = categories[Math.floor(categories.length / 2)];
 
 const roundToDecimal = (number: number, decimal?: number) =>
   round(number, decimal);
@@ -41,42 +54,66 @@ export const SimpleChart = () => {
     {
       type: "line",
       data: dataPoints,
-      field: "temperature",
+      field: TEMPERATURE,
       name: `Temperature [${TEMPERATURE_UMCELCIUS}]`,
       color: "#ff1c1c",
-      axis: AXIS_TEMPERATURE,
+      axis: TEMPERATURE,
       noteTextField: "hello",
+      aggregate: "avg",
     },
     {
       type: "line",
       data: dataPoints,
-      field: "pressure",
+      field: PRESSURE,
       name: `Pressure [${PRESSURE_UM}]`,
       color: "#2463e1",
-      axis: AXIS_PRESSURE,
-    },
-    {
-      type: "bar",
-      data: dataPoints,
-      field: "fanSpeed",
-      name: `Fan Speed [${FANSPEED_UM}]`,
-      color: "#ab36ff60",
-      axis: AXIS_FAN,
+      axis: PRESSURE,
+      aggregate: "avg",
     },
     {
       type: "line",
       data: dataPoints,
-      field: "humidity",
+      field: FAN_SPEED,
+      name: `Fan Speed [${FANSPEED_UM}]`,
+      color: "#ab36ff60",
+      axis: FAN_SPEED,
+      aggregate: "avg",
+    },
+    {
+      type: "line",
+      data: dataPoints,
+      field: HUMIDITY,
       name: `Humidity [%]`,
       color: "#e8ff36",
-      axis: AXIS_HUMIDITY,
+      axis: HUMIDITY,
+      aggregate: "avg",
+    },
+    {
+      type: "area",
+      data: dataPoints,
+      field: ON_OFF,
+      name: `Onoff`,
+      color: "#ff8a36",
+      axis: ON_OFF,
+      line: { style: "step" },
+      aggregate: "max",
+    },
+    {
+      type: "area",
+      data: dataPoints,
+      field: IN_DEFROST_STATE,
+      name: `InDefrostState`,
+      color: "#36a8ff",
+      axis: IN_DEFROST_STATE,
+      line: { style: "step" },
+      aggregate: "max",
     },
   ];
 
   const valueAxis: ChartValueAxisItemProps[] = [
     {
-      name: AXIS_TEMPERATURE,
-      // min: 0,
+      name: TEMPERATURE,
+      visible: true,
       max: undefined,
       labels: {
         content: (e: any) =>
@@ -84,29 +121,51 @@ export const SimpleChart = () => {
       },
     },
     {
-      name: AXIS_PRESSURE,
-      // min: 0,
+      name: PRESSURE,
+      visible: true,
       max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} ${PRESSURE_UM}`,
       },
-      // visible: false
     },
     {
-      name: AXIS_FAN,
-      // min: 0,
+      name: FAN_SPEED,
       max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} ${FANSPEED_UM}`,
       },
     },
     {
-      name: AXIS_HUMIDITY,
-      // min: 0,
+      name: HUMIDITY,
+      visible: true,
       max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} %`,
       },
+    },
+    {
+      name: ON_OFF,
+      visible: true,
+      pane: ON_OFF,
+      majorGridLines: { visible: false },
+      majorTicks: { visible: false },
+      labels: { visible: false },
+      min: 0,
+      max: 1,
+      minorUnit: 0,
+      majorUnit: 1
+    },
+    {
+      name: IN_DEFROST_STATE,
+      visible: true,
+      pane: IN_DEFROST_STATE,
+      majorGridLines: { visible: false },
+      majorTicks: { visible: false },
+      labels: { visible: false },
+      min: 0,
+      max: 1,
+      minorUnit: 0,
+      majorUnit: 1
     },
   ];
 
@@ -115,11 +174,13 @@ export const SimpleChart = () => {
     if (!chart) {
       return;
     }
-    // get the axes
-    drawMarker(categories[3000]);
 
-    function drawMarker(markerDate: Date) {
-      const valueAxis = chart.findAxisByName(AXIS_TEMPERATURE);
+
+    //// Doesn't work yet with panning & zooming 
+    // drawMarkerOnTimestamp(markerTimestamp);
+    function drawMarkerOnTimestamp(markerDate: Date) {
+      // get the axes
+      const valueAxis = chart.findAxisByName(TEMPERATURE);
       const categoryAxis = chart.findAxisByName("categoryAxis");
 
       console.log(categoryAxis);
@@ -143,7 +204,7 @@ export const SimpleChart = () => {
         .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
         .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
 
-      const label = new Text("Marker1", [0, 0], {
+      const label = new Text("Marker1: " + markerTimestamp.toUTCString(), [0, 0], {
         fill: {
           color: "red",
         },
@@ -174,29 +235,51 @@ export const SimpleChart = () => {
         zoomable={true}
       >
         <ChartTitle text="Multiple axes" />
+        <ChartPanes>
+          <ChartPane name="top"></ChartPane>
+          <ChartPane name={ON_OFF} height={BOOLEAN_TYPE_BAR_HEIGHT} />
+          <ChartPane name={IN_DEFROST_STATE} height={BOOLEAN_TYPE_BAR_HEIGHT} />
+          <ChartPane name="emptyPane" height={20} />
+        </ChartPanes>
         <ChartSeries>
           {series.map((item, idx) => (
-            <ChartSeriesItem key={idx} {...item} aggregate="avg" />
+            <ChartSeriesItem key={idx} {...item} />
           ))}
         </ChartSeries>
         <ChartCategoryAxis>
-          <ChartCategoryAxisItem
-            name="categoryAxis"
-            categories={categories}
-            maxDivisions={10}
-            maxDateGroups={30}
-            baseUnit="auto"
-            baseUnitStep="auto"
-            axisCrossingValue={[0, 0, 0]}
-            plotBands={[
-              {
-                from: plotBand[0],
-                to: plotBand[1],
-                color: "#ff2424",
-                opacity: 0.4,
-              },
-            ]}
-          />
+          {[
+            // <ChartCategoryAxisItem
+            //   key={0}
+            //   pane="top"
+            //   name="categoryAxis"
+            //   categories={categories}
+            //   maxDivisions={10}
+            //   maxDateGroups={30}
+            //   baseUnit="auto"
+            //   baseUnitStep="auto"
+            //   axisCrossingValue={[0, 0, 0]}
+            //   plotBands={[
+            //     {
+            //       from: plotBand[0],
+            //       to: plotBand[1],
+            //       color: "#ff3434d4",
+            //       opacity: 0.4,
+            //     },
+            //   ]}
+            //   visible={false}
+            // />,
+            <ChartCategoryAxisItem
+              key={1}
+              pane="emptyPane" // take the last pane
+              name="categoryAxis2"
+              categories={categories}
+              maxDivisions={10}
+              maxDateGroups={30}
+              baseUnit="auto"
+              baseUnitStep="auto"
+              axisCrossingValue={[0, 0, 0]}
+            />,
+          ]}
         </ChartCategoryAxis>
         <ChartValueAxis>
           {valueAxis.map((item, idx) => (
@@ -209,30 +292,6 @@ export const SimpleChart = () => {
       <div>
         ERROR ZONE: {plotBand[0].toUTCString()} - {plotBand[1].toUTCString()}
       </div>
-      <br></br>
-      <br></br>
-      {/* <table>
-        <thead>
-        <tr>
-            <th>Timestamp</th>
-            <th>Temperature</th>
-            <th>Pressure</th>
-            <th>Fanspeed</th>
-            <th>Humidity</th>
-            </tr>
-            </thead>
-            <tbody>
-          {dataPoints.map((x, idx) => (
-            <tr key={idx}>
-            <td>{x.date.toUTCString()}</td>
-            <td>{x.temperature}</td>
-            <td>{x.pressure}</td>
-            <td>{x.fanSpeed}</td>
-            <td>{x.humidity}</td>
-            </tr>
-            ))}
-            </tbody>
-          </table> */}
     </>
   );
 };
