@@ -26,6 +26,8 @@ import { getDataPoints } from "./getDataPoints";
 const TEMPERATURE_UMCELCIUS = "°C";
 const FANSPEED_UM = "CMS";
 const PRESSURE_UM = "kPa";
+
+// these must match the fields of our datapoint !.
 const PRESSURE = "pressure";
 const FAN_SPEED = "fanSpeed";
 const TEMPERATURE = "temperature";
@@ -33,7 +35,7 @@ const HUMIDITY = "humidity";
 const ON_OFF = "onOff";
 const IN_DEFROST_STATE = "inDefrostState";
 
-const BOOLEAN_TYPE_BAR_HEIGHT = 30;
+const BOOLEAN_TYPE_BAR_HEIGHT = 40;
 
 const dataPoints = getDataPoints(10, 30);
 console.log(dataPoints);
@@ -114,7 +116,6 @@ export const SimpleChart = () => {
     {
       name: TEMPERATURE,
       visible: true,
-      max: undefined,
       labels: {
         content: (e: any) =>
           `${roundToDecimal(e.value, 1)} ${TEMPERATURE_UMCELCIUS}`,
@@ -123,14 +124,12 @@ export const SimpleChart = () => {
     {
       name: PRESSURE,
       visible: true,
-      max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} ${PRESSURE_UM}`,
       },
     },
     {
       name: FAN_SPEED,
-      max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} ${FANSPEED_UM}`,
       },
@@ -138,7 +137,6 @@ export const SimpleChart = () => {
     {
       name: HUMIDITY,
       visible: true,
-      max: undefined,
       labels: {
         content: (e: any) => `${roundToDecimal(e.value)} %`,
       },
@@ -149,11 +147,12 @@ export const SimpleChart = () => {
       pane: ON_OFF,
       majorGridLines: { visible: false },
       majorTicks: { visible: false },
-      labels: { visible: false },
+      labels: { visible: false},
       min: 0,
       max: 1,
       minorUnit: 0,
       majorUnit: 1
+      
     },
     {
       name: IN_DEFROST_STATE,
@@ -234,12 +233,11 @@ export const SimpleChart = () => {
         pannable={true}
         zoomable={true}
       >
-        <ChartTitle text="Multiple axes" />
         <ChartPanes>
-          <ChartPane name="top"></ChartPane>
+          <ChartPane name="lineChartsPane"></ChartPane>
           <ChartPane name={ON_OFF} height={BOOLEAN_TYPE_BAR_HEIGHT} />
           <ChartPane name={IN_DEFROST_STATE} height={BOOLEAN_TYPE_BAR_HEIGHT} />
-          <ChartPane name="emptyPane" height={20} />
+          <ChartPane name="placeholderPane" height={20} />
         </ChartPanes>
         <ChartSeries>
           {series.map((item, idx) => (
@@ -248,29 +246,29 @@ export const SimpleChart = () => {
         </ChartSeries>
         <ChartCategoryAxis>
           {[
-            // <ChartCategoryAxisItem
-            //   key={0}
-            //   pane="top"
-            //   name="categoryAxis"
-            //   categories={categories}
-            //   maxDivisions={10}
-            //   maxDateGroups={30}
-            //   baseUnit="auto"
-            //   baseUnitStep="auto"
-            //   axisCrossingValue={[0, 0, 0]}
-            //   plotBands={[
-            //     {
-            //       from: plotBand[0],
-            //       to: plotBand[1],
-            //       color: "#ff3434d4",
-            //       opacity: 0.4,
-            //     },
-            //   ]}
-            //   visible={false}
-            // />,
+            <ChartCategoryAxisItem
+              key={0}
+              pane="lineChartsPane"
+              name="categoryAxis"
+              categories={categories}
+              maxDivisions={10}
+              maxDateGroups={30}
+              baseUnit="auto"
+              baseUnitStep="auto"
+              axisCrossingValue={[0, 0, 0]}
+              plotBands={[
+                {
+                  from: plotBand[0],
+                  to: plotBand[1],
+                  color: "#ff3434d4",
+                  opacity: 0.4,
+                },
+              ]}
+              visible={false}
+            />,
             <ChartCategoryAxisItem
               key={1}
-              pane="emptyPane" // take the last pane
+              pane="placeholderPane" // take the last pane
               name="categoryAxis2"
               categories={categories}
               maxDivisions={10}
