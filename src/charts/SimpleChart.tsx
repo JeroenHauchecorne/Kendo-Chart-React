@@ -273,9 +273,6 @@ export const SimpleChart = () => {
     //   chart.surface.draw(group);
     // }
 
-    // series.forEach(element => {
-    //   element.isBooleanTypeSerie && drawBooleanTypeBarNames()
-    // });
 
     // Draw the names of the boolean type bars to the left of the bar
     drawBooleanTypeSerieNames();
@@ -292,6 +289,7 @@ export const SimpleChart = () => {
           });
           const bbox = label.bbox();
 
+          // positioning isn't optimal yet. This should be dependent on the height we set for the bars
           label.position([
             valueAxis.slot().origin.x - (bbox.size.width + 20),
             valueAxis.slot().origin.y - bbox.size.height,
