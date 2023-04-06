@@ -1,7 +1,9 @@
-const randomNumberBetween = (min: number, max: number) =>
+const randomIntegerNumberBetween = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 
-export const getDataPoints = (days = 30, interval = 5) => {
+const randomNullor1Value = () => (randomIntegerNumberBetween(0, 1) ? 1 : null);
+
+export const getDataPoints = (days = 30, intervalMinutes = 5) => {
   const startDate = new Date(); // Start from the current date and time
   const endDate = new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000); // End date is one day from the start date
   const datesArray: Date[] = [];
@@ -9,7 +11,7 @@ export const getDataPoints = (days = 30, interval = 5) => {
   for (
     let date = startDate;
     date < endDate;
-    date.setMinutes(date.getMinutes() + interval)
+    date.setMinutes(date.getMinutes() + intervalMinutes)
   ) {
     datesArray.push(new Date(date));
   }
@@ -21,12 +23,12 @@ export const getDataPoints = (days = 30, interval = 5) => {
   for (let idx = 0; idx < datesArray.length; idx++) {
     dataPoints.push({
       date: datesArray[idx],
-      temperature: randomNumberBetween(0, 30),
-      pressure: randomNumberBetween(700, 1200),
-      fanSpeed: randomNumberBetween(100, 400),
-      humidity: randomNumberBetween(0, 100),
-      onOff: randomNumberBetween(0,1),
-      inDefrostState: randomNumberBetween(0,1)
+      temperature: randomIntegerNumberBetween(0, 30),
+      pressure: randomIntegerNumberBetween(700, 1200),
+      fanSpeed: randomIntegerNumberBetween(100, 400),
+      humidity: randomIntegerNumberBetween(0, 100),
+      onOff: randomNullor1Value(),
+      inDefrostState: randomNullor1Value(),
     });
   }
 

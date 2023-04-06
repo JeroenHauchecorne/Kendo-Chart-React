@@ -17,13 +17,14 @@ import {
   ChartPanes,
   ChartPane,
   ValueAxisLabels,
+  SeriesNotes,
 } from "@progress/kendo-react-charts";
 
 import "hammerjs";
 import { round } from "lodash";
 import { getDataPoints } from "./getDataPoints";
 
-const TEMPERATURE_UMCELCIUS = "°C";
+const TEMPERATURE_UM_CELCIUS = "°C";
 const FANSPEED_UM = "CMS";
 const PRESSURE_UM = "kPa";
 
@@ -35,11 +36,23 @@ const HUMIDITY = "humidity";
 const ON_OFF = "onOff";
 const IN_DEFROST_STATE = "inDefrostState";
 
-const BOOLEAN_TYPE_BAR_HEIGHT = 40;
+const BOOLEAN_TYPE_SERIE_HEIGHT = 25;
 
 const dataPoints = getDataPoints(10, 30);
-console.log(dataPoints);
+console.log({ dataPoints });
 const categories = dataPoints.map((x) => x.date);
+
+const markerTimestamps = [
+  categories[Math.floor(categories.length / 3)],
+  categories[Math.floor(categories.length / 2)],
+  categories[Math.floor(categories.length / 0.75)],
+];
+
+// const markerDataPoints = categories.map((timestamp) => {
+//   if (markerTimestamps.includes(timestamp))
+//     return { marker: 1, extremum: "test" };
+//   return { marker: 0 };
+// });
 
 const plotBands = [
   {
@@ -50,20 +63,19 @@ const plotBands = [
   },
 ];
 
-const marker1Timestamp = categories[Math.floor(categories.length / 2)];
+// Add extra series with only 0 values.
 
 const roundToDecimal = (number: number, decimal?: number) =>
   round(number, decimal);
 
-const series: ChartSeriesItemProps[] = [
+const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
   {
     type: "line",
     data: dataPoints,
     field: TEMPERATURE,
-    name: `Temperature [${TEMPERATURE_UMCELCIUS}]`,
+    name: `Temperature [${TEMPERATURE_UM_CELCIUS}]`,
     color: "#ff1c1c",
     axis: TEMPERATURE,
-    noteTextField: "hello",
     aggregate: "avg",
   },
   {
@@ -97,11 +109,13 @@ const series: ChartSeriesItemProps[] = [
     type: "area",
     data: dataPoints,
     field: ON_OFF,
-    name: `Onoff`,
+    name: `ON/OFF`,
     color: "#ff8a36",
     axis: ON_OFF,
     line: { style: "step" },
     aggregate: "max",
+    isBooleanTypeSerie: true,
+    missingValues: "gap",
   },
   {
     type: "area",
@@ -112,17 +126,47 @@ const series: ChartSeriesItemProps[] = [
     axis: IN_DEFROST_STATE,
     line: { style: "step" },
     aggregate: "max",
+    isBooleanTypeSerie: true,
+    missingValues: "gap",
   },
+  // {
+  //   data: markerDataPoints,
+  //   field: "marker",
+  //   name: "Markers",
+  //   noteTextField: "extremum",
+  //   notes: {
+  //     label: {
+  //       position: "outside",
+  //     },
+  //     line: {
+  //       length: 300,
+  //     },
+  //     icon: {
+  //       type: "square",
+  //     },
+  //     position: "top",
+  //   },
+  // },
 ];
 
 const valueAxis: ChartValueAxisItemProps[] = [
+  // {
+  //   name: "markers",
+  //   min: 0,
+  //   max: 1,
+  //   minorUnit: 0,
+  //   majorUnit: 1,
+  //   visible: false
+
+  // },
   {
     name: TEMPERATURE,
     visible: true,
     labels: {
-      content: (e: any) =>
-        `${roundToDecimal(e.value, 1)} ${TEMPERATURE_UMCELCIUS}`,
-    },
+      content: (e: any) => {
+        return `${roundToDecimal(e.value, 1)} ${TEMPERATURE_UM_CELCIUS}`;
+      },
+    } as ValueAxisLabels,
   },
   {
     name: PRESSURE,
@@ -177,56 +221,85 @@ export const SimpleChart = () => {
       return;
     }
 
-    // Draw the names of the boolean type bars
-
     //// Doesn't work yet with panning & zooming
-    // drawMarkerOnTimestamp(markerTimestamp);
-    function drawMarkerOnTimestamp(markerDate: Date) {
-      // get the axes
-      const valueAxis = chart.findAxisByName(TEMPERATURE);
-      const categoryAxis = chart.findAxisByName("categoryAxis");
+    // const marker1Timestamp = categories[Math.floor(categories.length / 2)];
+    // drawMarkerOnTimestamp(marker1Timestamp);
+    // function drawMarkerOnTimestamp(markerDate: Date) {
+    //   // get the axes
+    //   const valueAxis = chart.findAxisByName(TEMPERATURE);
+    //   const categoryAxis = chart.findAxisByName("categoryAxis");
 
-      console.log(categoryAxis);
-      console.log(valueAxis);
+    //   console.log(categoryAxis);
+    //   console.log(valueAxis);
 
-      // get the coordinates of the value at which the plot band will be rendered
-      const catergorySlot = categoryAxis.slot(markerDate);
-      console.log(catergorySlot);
+    //   // get the coordinates of the value at which the plot band will be rendered
+    //   const catergorySlot = categoryAxis.slot(markerDate);
+    //   console.log(catergorySlot);
 
-      // get the coordinates of the entire category axis range
-      const range = valueAxis.range();
-      const valueSlot = valueAxis.slot(range.min, range.max);
-      console.log({ valueSlot });
-      // draw the plot band based on the found coordinates
-      const line = new Path({
-        stroke: {
-          color: "#5e5e5e",
-          width: 1,
-        },
-      })
-        .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
-        .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
+    //   // get the coordinates of the entire category axis range
+    //   const range = valueAxis.range();
+    //   const valueSlot = valueAxis.slot(range.min, range.max);
+    //   console.log({ valueSlot });
+    //   // draw the plot band based on the found coordinates
+    //   const line = new Path({
+    //     stroke: {
+    //       color: "#5e5e5e",
+    //       width: 1,
+    //     },
+    //   })
+    //     .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
+    //     .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
 
-      const label = new Text(
-        "Marker1: " + marker1Timestamp.toUTCString(),
-        [0, 0],
-        {
-          fill: {
-            color: "red",
-          },
-          font: "14px sans",
-        }
-      );
-      const bbox = label.bbox();
-      label.position([
-        catergorySlot.origin.x + 2,
-        valueSlot.origin.y - bbox.size.height,
-      ]);
+    //   const label = new Text(
+    //     "Marker1: " + marker1Timestamp.toUTCString(),
+    //     [0, 0],
+    //     {
+    //       fill: {
+    //         color: "red",
+    //       },
+    //       font: "14px sans",
+    //     }
+    //   );
+    //   const bbox = label.bbox();
+    //   label.position([
+    //     catergorySlot.origin.x + 2,
+    //     valueSlot.origin.y - bbox.size.height,
+    //   ]);
 
+    //   const group = new Group();
+    //   group.append(line, label);
+
+    //   // draw on the surface
+    //   chart.surface.draw(group);
+    // }
+
+    // series.forEach(element => {
+    //   element.isBooleanTypeSerie && drawBooleanTypeBarNames()
+    // });
+
+    // Draw the names of the boolean type bars to the left of the bar
+    drawBooleanTypeSerieNames();
+
+    function drawBooleanTypeSerieNames() {
       const group = new Group();
-      group.append(line, label);
+      series.forEach((element) => {
+        if (element.isBooleanTypeSerie) {
+          const valueAxis = chart.findAxisByName(element.axis);
+          const label = new Text(element.name || "", [0, 0], {
+            fill: {
+              color: "#424242",
+            },
+          });
+          const bbox = label.bbox();
 
-      // draw on the surface
+          label.position([
+            valueAxis.slot().origin.x - (bbox.size.width + 20),
+            valueAxis.slot().origin.y - bbox.size.height,
+          ]);
+          group.append(label);
+        }
+      });
+
       chart.surface.draw(group);
     }
   };
@@ -243,8 +316,11 @@ export const SimpleChart = () => {
       >
         <ChartPanes>
           <ChartPane name="lineChartsPane"></ChartPane>
-          <ChartPane name={ON_OFF} height={BOOLEAN_TYPE_BAR_HEIGHT} />
-          <ChartPane name={IN_DEFROST_STATE} height={BOOLEAN_TYPE_BAR_HEIGHT} />
+          <ChartPane name={ON_OFF} height={BOOLEAN_TYPE_SERIE_HEIGHT} />
+          <ChartPane
+            name={IN_DEFROST_STATE}
+            height={BOOLEAN_TYPE_SERIE_HEIGHT}
+          />
           <ChartPane name="placeholderPane" height={20} />
         </ChartPanes>
         <ChartSeries>
@@ -289,7 +365,8 @@ export const SimpleChart = () => {
       </Chart>
       <br></br>
       <div>
-        ERROR ZONE: {plotBands[0] && plotBands[0].from.toUTCString()} - {plotBands[0].to.toUTCString()}
+        ERROR ZONE: {plotBands[0] && plotBands[0].from.toUTCString()} -{" "}
+        {plotBands[0].to.toUTCString()}
       </div>
     </>
   );
