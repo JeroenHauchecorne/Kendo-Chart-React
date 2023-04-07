@@ -77,6 +77,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     color: "#ff1c1c",
     axis: TEMPERATURE,
     aggregate: "avg",
+    visible: true,
   },
   {
     type: "line",
@@ -86,6 +87,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     color: "#2463e1",
     axis: PRESSURE,
     aggregate: "avg",
+    visible: true,
   },
   {
     type: "line",
@@ -95,6 +97,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     color: "#ab36ff60",
     axis: FAN_SPEED,
     aggregate: "avg",
+    visible: true,
   },
   {
     type: "line",
@@ -104,6 +107,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     color: "#e8ff36",
     axis: HUMIDITY,
     aggregate: "avg",
+    visible: true,
   },
   {
     type: "area",
@@ -116,6 +120,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     aggregate: "max",
     isBooleanTypeSerie: true,
     missingValues: "gap",
+    visible: true,
   },
   {
     type: "area",
@@ -128,6 +133,7 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     aggregate: "max",
     isBooleanTypeSerie: true,
     missingValues: "gap",
+    visible: true,
   },
   // {
   //   data: markerDataPoints,
@@ -273,7 +279,6 @@ export const SimpleChart = () => {
     //   chart.surface.draw(group);
     // }
 
-
     // Draw the names of the boolean type bars to the left of the bar
     drawBooleanTypeSerieNames();
 
@@ -304,8 +309,28 @@ export const SimpleChart = () => {
 
   const onPlotAreaClick = (event: PlotAreaClickEvent) => {};
 
+  const handleCheckboxClick = (axis: string, value: boolean) => {
+    console.log(axis, value);
+    // toggle the visible property of the serie and valueAxis
+  };
+
   return (
     <>
+      <div>
+        {series.map((el) => {
+          return (
+            <div>
+              <input
+                type="checkbox"
+                onClick={(event) =>
+                  handleCheckboxClick(el.axis!, event.currentTarget.checked)
+                }
+              ></input>
+              <label>{el.axis}</label>
+            </div>
+          );
+        })}
+      </div>
       <Chart
         onPlotAreaClick={onPlotAreaClick}
         onRender={onRender}
