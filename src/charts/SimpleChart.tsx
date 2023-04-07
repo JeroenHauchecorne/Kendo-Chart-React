@@ -42,11 +42,11 @@ const dataPoints = getDataPoints(10, 30);
 console.log({ dataPoints });
 const categories = dataPoints.map((x) => x.date);
 
-const markerTimestamps = [
-  categories[Math.floor(categories.length / 3)],
-  categories[Math.floor(categories.length / 2)],
-  categories[Math.floor(categories.length / 0.75)],
-];
+// const markerTimestamps = [
+//   categories[Math.floor(categories.length / 3)],
+//   categories[Math.floor(categories.length / 2)],
+//   categories[Math.floor(categories.length / 0.75)],
+// ];
 
 // const markerDataPoints = categories.map((timestamp) => {
 //   if (markerTimestamps.includes(timestamp))
@@ -326,7 +326,7 @@ export const SimpleChart = () => {
                   handleCheckboxClick(el.axis!, event.currentTarget.checked)
                 }
               ></input>
-              <label>{el.axis}</label>
+              <label>{el.name}</label>
             </div>
           );
         })}
@@ -339,11 +339,17 @@ export const SimpleChart = () => {
       >
         <ChartPanes>
           <ChartPane name="lineChartsPane"></ChartPane>
-          <ChartPane name={ON_OFF} height={BOOLEAN_TYPE_SERIE_HEIGHT} />
-          <ChartPane
-            name={IN_DEFROST_STATE}
-            height={BOOLEAN_TYPE_SERIE_HEIGHT}
-          />
+          {series.map(
+            (item, idx) =>
+              item.isBooleanTypeSerie && (
+                <ChartPane
+                  key={idx}
+                  name={item.axis}
+                  height={BOOLEAN_TYPE_SERIE_HEIGHT}
+                />
+              )
+          )}
+
           <ChartPane name="placeholderPane" height={20} />
         </ChartPanes>
         <ChartSeries>
@@ -376,6 +382,7 @@ export const SimpleChart = () => {
               baseUnit="auto"
               baseUnitStep="auto"
               axisCrossingValue={[0, 0, 0]}
+              visible={true}
             />,
           ]}
         </ChartCategoryAxis>
