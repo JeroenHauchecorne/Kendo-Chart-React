@@ -1,28 +1,31 @@
-import { Group, Path, Text } from "@progress/kendo-drawing";
+import { Group, Text } from "@progress/kendo-drawing";
 import {
   Chart,
   ChartSeries,
   ChartSeriesItem,
   ChartCategoryAxis,
   ChartCategoryAxisItem,
-  ChartTitle,
   ChartLegend,
   ChartValueAxis,
   ChartValueAxisItem,
   ChartSeriesItemProps,
   ChartValueAxisItemProps,
-  ChartLegendItem,
   RenderEvent,
   PlotAreaClickEvent,
   ChartPanes,
   ChartPane,
   ValueAxisLabels,
-  SeriesNotes,
 } from "@progress/kendo-react-charts";
+import {
+  DateRangePicker,
+  DateRangePickerChangeEvent,
+} from "@progress/kendo-react-dateinputs";
 
 import "hammerjs";
 import { round } from "lodash";
+import { useState } from "react";
 import { getDataPoints } from "./getDataPoints";
+import dayjs from "dayjs";
 
 const TEMPERATURE_UM_CELCIUS = "°C";
 const FANSPEED_UM = "CMS";
@@ -32,15 +35,17 @@ const PRESSURE_UM = "kPa";
 const PRESSURE = "pressure";
 const FAN_SPEED = "fanSpeed";
 const TEMPERATURE = "temperature";
+const INDOOR_TEMPERATURE = "indoorTemperature";
 const HUMIDITY = "humidity";
 const ON_OFF = "onOff";
 const IN_DEFROST_STATE = "inDefrostState";
 
 const BOOLEAN_TYPE_SERIE_HEIGHT = 25;
-
-const dataPoints = getDataPoints(10, 30);
+const DATAPOINTS_DAYS = 60;
+const DATAPOINTS_INTERVAL_MINUTES = 30;
+const dataPoints = getDataPoints(DATAPOINTS_DAYS, DATAPOINTS_INTERVAL_MINUTES);
 console.log({ dataPoints });
-const categories = dataPoints.map((x) => x.date);
+const categories: Date[] = dataPoints.map((x) => x.date);
 
 // const markerTimestamps = [
 //   categories[Math.floor(categories.length / 3)],
@@ -75,6 +80,16 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     field: TEMPERATURE,
     name: `Temperature [${TEMPERATURE_UM_CELCIUS}]`,
     color: "#ff1c1c",
+    axis: TEMPERATURE,
+    aggregate: "avg",
+    visible: true,
+  },
+  {
+    type: "line",
+    data: dataPoints,
+    field: INDOOR_TEMPERATURE,
+    name: `Temperature [${TEMPERATURE_UM_CELCIUS}]`,
+    color: "#ff771c",
     axis: TEMPERATURE,
     aggregate: "avg",
     visible: true,
@@ -167,6 +182,7 @@ const valueAxis: ChartValueAxisItemProps[] = [
   // },
   {
     name: TEMPERATURE,
+    pane: "lineChartsPane",
     visible: true,
     labels: {
       content: (e: any) => {
@@ -176,6 +192,7 @@ const valueAxis: ChartValueAxisItemProps[] = [
   },
   {
     name: PRESSURE,
+    pane: "lineChartsPane",
     visible: true,
     labels: {
       content: (e: any) => `${roundToDecimal(e.value)} ${PRESSURE_UM}`,
@@ -183,12 +200,14 @@ const valueAxis: ChartValueAxisItemProps[] = [
   },
   {
     name: FAN_SPEED,
+    pane: "lineChartsPane",
     labels: {
       content: (e: any) => `${roundToDecimal(e.value)} ${FANSPEED_UM}`,
     },
   },
   {
     name: HUMIDITY,
+    pane: "lineChartsPane",
     visible: true,
     labels: {
       content: (e: any) => `${roundToDecimal(e.value)} %`,
@@ -200,11 +219,13 @@ const valueAxis: ChartValueAxisItemProps[] = [
     pane: ON_OFF,
     majorGridLines: { visible: false },
     majorTicks: { visible: false },
-    labels: { visible: false },
+    labels: {
+      visible: true,
+      content: (e) => (e.value === 0.5 ? ON_OFF : ""),
+    },
     min: 0,
     max: 1,
-    minorUnit: 0,
-    majorUnit: 1,
+    majorUnit: 0.5,
   },
   {
     name: IN_DEFROST_STATE,
@@ -212,15 +233,59 @@ const valueAxis: ChartValueAxisItemProps[] = [
     pane: IN_DEFROST_STATE,
     majorGridLines: { visible: false },
     majorTicks: { visible: false },
-    labels: { visible: false },
+    // labels: { visible: false },
+    labels: {
+      visible: true,
+      content: (e) => (e.value === 0.5 ? IN_DEFROST_STATE : ""),
+    },
     min: 0,
     max: 1,
-    minorUnit: 0,
-    majorUnit: 1,
+    majorUnit: 0.5,
   },
 ];
 
+function getStartAndEndOfDay(date: Date): { start: Date; end: Date } {
+  const startOfDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+  const endOfDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  return { start: startOfDay, end: endOfDay };
+}
+
+const today = new Date();
+
+const defaultDateRangePickValue = {
+  start: today,
+  end: today,
+};
+
+const pastDate = new Date(
+  today.getTime() - DATAPOINTS_DAYS * 24 * 60 * 60 * 1000
+);
+const { start: minDateRangePickerValue } = getStartAndEndOfDay(pastDate);
+const { end: maxDateRangePickerValue } = getStartAndEndOfDay(today);
+
 export const SimpleChart = () => {
+  const [selectedDate, setSelectedDate] = useState<{
+    start?: Date;
+    end?: Date;
+  }>(() => getStartAndEndOfDay(today));
+
   const onRender = (event: RenderEvent) => {
     const chart = event.target.chartInstance;
     if (!chart) {
@@ -280,7 +345,7 @@ export const SimpleChart = () => {
     // }
 
     // Draw the names of the boolean type bars to the left of the bar
-    drawBooleanTypeSerieNames();
+    // drawBooleanTypeSerieNames();
 
     function drawBooleanTypeSerieNames() {
       const group = new Group();
@@ -314,14 +379,46 @@ export const SimpleChart = () => {
     // toggle the visible property of the serie and valueAxis
   };
 
+  const handleDateChange = (event: DateRangePickerChangeEvent) => {
+    console.log("handleDateChange", event.value);
+    if (!!event.value.start && !!event.value.end) {
+      const { start } = getStartAndEndOfDay(event.value.start);
+      const { end } = getStartAndEndOfDay(event.value.end);
+      setSelectedDate({ start, end });
+    }
+  };
+
+  const booleanChartPanes = series
+    .filter((x) => x.isBooleanTypeSerie)
+    .map((item, idx) => (
+      <ChartPane
+        key={idx}
+        name={item.axis}
+        height={BOOLEAN_TYPE_SERIE_HEIGHT}
+      />
+    ));
+  const chartPanes = [
+    <ChartPane key="lineChartsPane" name="lineChartsPane"></ChartPane>,
+    ...booleanChartPanes,
+    <ChartPane key="placeholderPane" name="placeholderPane" height={20} />,
+    <ChartPane key="placeholderPane2" name="placeholderPane2" height={20} />,
+  ];
+
+  const setDateRange = (days: number) =>
+    setSelectedDate({
+      start: dayjs().subtract(days, "day").toDate(),
+      end: today,
+    });
+
   return (
     <>
-      <div>
-        {series.map((el) => {
+      {/* <div>
+        {series.map((el, idx) => {
           return (
-            <div>
+            <div key={idx}>
               <input
                 type="checkbox"
+                defaultChecked={true}
                 onClick={(event) =>
                   handleCheckboxClick(el.axis!, event.currentTarget.checked)
                 }
@@ -330,28 +427,35 @@ export const SimpleChart = () => {
             </div>
           );
         })}
+      </div> */}
+
+      <div>
+        <DateRangePicker
+          min={minDateRangePickerValue}
+          max={maxDateRangePickerValue}
+          defaultValue={defaultDateRangePickValue}
+          onChange={handleDateChange}
+        />
+      </div>
+      <div>
+        LAST: 
+        {Array.from(Array(12)).map((x, idx) => <button onClick={() => setDateRange(idx)}>{++idx} DAY</button>)}
+        <button onClick={() => setDateRange(30)}>30 DAY</button>
       </div>
       <Chart
+        transitions={true} // put to false if needed
         onPlotAreaClick={onPlotAreaClick}
         onRender={onRender}
-        pannable={true}
-        zoomable={true}
+        pannable={{
+          lock: "y",
+        }}
+        zoomable={{
+          mousewheel: {
+            lock: "y",
+          },
+        }}
       >
-        <ChartPanes>
-          <ChartPane name="lineChartsPane"></ChartPane>
-          {series.map(
-            (item, idx) =>
-              item.isBooleanTypeSerie && (
-                <ChartPane
-                  key={idx}
-                  name={item.axis}
-                  height={BOOLEAN_TYPE_SERIE_HEIGHT}
-                />
-              )
-          )}
-
-          <ChartPane name="placeholderPane" height={20} />
-        </ChartPanes>
+        <ChartPanes>{chartPanes}</ChartPanes>
         <ChartSeries>
           {series.map((item, idx) => (
             <ChartSeriesItem key={idx} {...item} />
@@ -360,30 +464,42 @@ export const SimpleChart = () => {
         <ChartCategoryAxis>
           {[
             <ChartCategoryAxisItem
-              key={0}
-              pane="lineChartsPane"
-              name="categoryAxis"
-              categories={categories}
-              maxDivisions={10}
-              maxDateGroups={30}
-              baseUnit="auto"
-              baseUnitStep="auto"
-              axisCrossingValue={[0, 0, 0]}
-              plotBands={plotBands}
-              visible={false}
-            />,
-            <ChartCategoryAxisItem
               key={1}
               pane="placeholderPane" // take the last pane
               name="categoryAxis2"
               categories={categories}
-              maxDivisions={10}
-              maxDateGroups={30}
-              baseUnit="auto"
-              baseUnitStep="auto"
-              axisCrossingValue={[0, 0, 0]}
+              // maxDivisions={12} // labels on the axis
+              // maxDateGroups={5} // points on the chart
+              baseUnit="fit"
+              // baseUnitStep="auto"
               visible={true}
+              min={selectedDate.start}
+              max={selectedDate.end}
             />,
+            // <ChartCategoryAxisItem
+            //   key={0}
+            //   pane="lineChartsPane"
+            //   name="categoryAxis"
+            //   categories={categories}
+            //   type="date"
+            //   plotBands={plotBands}
+            //   visible={false}
+            // />,
+            // <ChartCategoryAxisItem
+            //   key={1}
+            //   pane="placeholderPane2" // take the last pane
+            //   name="categoryAxis3"
+            //   categories={categories}
+            //   // maxDivisions={10}
+            //   // maxDateGroups={30}
+            //   baseUnit="days"
+            //   // baseUnitStep="auto"
+            //   visible={true}
+            //   min={selectedDate.start}
+            //   max={selectedDate.end}
+            //   majorGridLines={{ visible: false }}
+            //   minorGridLines={{ visible: false }}
+            // />,
           ]}
         </ChartCategoryAxis>
         <ChartValueAxis>
@@ -391,7 +507,11 @@ export const SimpleChart = () => {
             <ChartValueAxisItem key={idx} {...item} />
           ))}
         </ChartValueAxis>
-        <ChartLegend position="right" orientation="vertical"></ChartLegend>
+        <ChartLegend
+          visible={true}
+          position="right"
+          orientation="vertical"
+        ></ChartLegend>
       </Chart>
       <br></br>
       <div>
