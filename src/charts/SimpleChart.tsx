@@ -1,4 +1,4 @@
-import { Group, Text } from "@progress/kendo-drawing";
+import { Group, Path, Text } from "@progress/kendo-drawing";
 import {
   Chart,
   ChartSeries,
@@ -15,6 +15,8 @@ import {
   ChartPanes,
   ChartPane,
   ValueAxisLabels,
+  ChartCategoryAxisItemProps,
+  ChartTooltip,
 } from "@progress/kendo-react-charts";
 import {
   DateRangePicker,
@@ -26,6 +28,8 @@ import { round } from "lodash";
 import { useState } from "react";
 import { getDataPoints } from "./getDataPoints";
 import dayjs from "dayjs";
+
+const today = new Date();
 
 const TEMPERATURE_UM_CELCIUS = "°C";
 const FANSPEED_UM = "CMS";
@@ -39,30 +43,37 @@ const INDOOR_TEMPERATURE = "indoorTemperature";
 const HUMIDITY = "humidity";
 const ON_OFF = "onOff";
 const IN_DEFROST_STATE = "inDefrostState";
-
 const BOOLEAN_TYPE_SERIE_HEIGHT = 25;
-const DATAPOINTS_DAYS = 60;
-const DATAPOINTS_INTERVAL_MINUTES = 30;
+const DATAPOINTS_DAYS = 10;
+const DATAPOINTS_INTERVAL_MINUTES = 10;
+
 const dataPoints = getDataPoints(DATAPOINTS_DAYS, DATAPOINTS_INTERVAL_MINUTES);
 console.log({ dataPoints });
 const categories: Date[] = dataPoints.map((x) => x.date);
 
-// const markerTimestamps = [
-//   categories[Math.floor(categories.length / 3)],
-//   categories[Math.floor(categories.length / 2)],
-//   categories[Math.floor(categories.length / 0.75)],
-// ];
+const markerTimestamps = [
+  categories[Math.floor(categories.length / 1.01)],
+  categories[Math.floor(categories.length / 1.05)],
+  categories[Math.floor(categories.length / 1.1)],
+];
+console.log({markerTimestamps})
 
-// const markerDataPoints = categories.map((timestamp) => {
-//   if (markerTimestamps.includes(timestamp))
-//     return { marker: 1, extremum: "test" };
-//   return { marker: 0 };
-// });
+const markerDataPoints = categories.map((timestamp) => {
+  if (markerTimestamps.includes(timestamp))
+    return { marker: 0.5, markerText: "test" };
+  return { marker: 0 };
+});
 
 const plotBands = [
   {
     from: categories[Math.floor(categories.length / 4)],
     to: categories[Math.floor(categories.length / 2)],
+    color: "#ff3434d4",
+    opacity: 0.4,
+  },
+  {
+    from: categories[Math.floor(categories.length / 1.1) - 1],
+    to: categories[Math.floor(categories.length / 1.1)],
     color: "#ff3434d4",
     opacity: 0.4,
   },
@@ -150,36 +161,47 @@ const series: Array<ChartSeriesItemProps & { isBooleanTypeSerie?: boolean }> = [
     missingValues: "gap",
     visible: true,
   },
-  // {
-  //   data: markerDataPoints,
-  //   field: "marker",
-  //   name: "Markers",
-  //   noteTextField: "extremum",
-  //   notes: {
-  //     label: {
-  //       position: "outside",
-  //     },
-  //     line: {
-  //       length: 300,
-  //     },
-  //     icon: {
-  //       type: "square",
-  //     },
-  //     position: "top",
-  //   },
-  // },
+  {
+    data: markerDataPoints,
+    field: "marker",
+    name: "Markers",
+    noteTextField: "markerText",
+    notes: {
+      // label: {
+      //   position: "outside",
+      // },
+      // line: {
+      //   length: 360,
+      //   width: 1,
+      // },
+      // icon: {
+      //   type: "square",
+      // },
+      // position: "top",
+      visual: function (e) {
+        // https://dojo.telerik.com/EfemAJOJ
+        var targetPoint = { x: e.rect.center().x, y: e.rect.origin.y };
+        // console.log("text: ", e);
+        return new Text(e.text, [targetPoint.x, targetPoint.y], {
+          fill: {
+            color: "red",
+          },
+          font: "14px sans",
+        });
+      },
+    },
+  },
 ];
 
 const valueAxis: ChartValueAxisItemProps[] = [
-  // {
-  //   name: "markers",
-  //   min: 0,
-  //   max: 1,
-  //   minorUnit: 0,
-  //   majorUnit: 1,
-  //   visible: false
-
-  // },
+  {
+    name: "markers",
+    min: 0,
+    max: 1,
+    minorUnit: 0,
+    majorUnit: 1,
+    visible: false,
+  },
   {
     name: TEMPERATURE,
     pane: "lineChartsPane",
@@ -233,7 +255,6 @@ const valueAxis: ChartValueAxisItemProps[] = [
     pane: IN_DEFROST_STATE,
     majorGridLines: { visible: false },
     majorTicks: { visible: false },
-    // labels: { visible: false },
     labels: {
       visible: true,
       content: (e) => (e.value === 0.5 ? IN_DEFROST_STATE : ""),
@@ -267,8 +288,6 @@ function getStartAndEndOfDay(date: Date): { start: Date; end: Date } {
   return { start: startOfDay, end: endOfDay };
 }
 
-const today = new Date();
-
 const defaultDateRangePickValue = {
   start: today,
   end: today,
@@ -282,67 +301,71 @@ const { end: maxDateRangePickerValue } = getStartAndEndOfDay(today);
 
 export const SimpleChart = () => {
   const [selectedDate, setSelectedDate] = useState<{
-    start?: Date;
-    end?: Date;
-  }>(() => getStartAndEndOfDay(today));
+    start: Date;
+    end: Date;
+  }>({ start: getStartAndEndOfDay(today).start, end: today });
 
+  console.log({ selectedDate });
   const onRender = (event: RenderEvent) => {
     const chart = event.target.chartInstance;
     if (!chart) {
       return;
     }
 
-    //// Doesn't work yet with panning & zooming
-    // const marker1Timestamp = categories[Math.floor(categories.length / 2)];
+    const marker1Timestamp = new Date(
+      (selectedDate?.start?.getTime() + selectedDate?.end?.getTime()) / 2
+    );
+    //// Doesn't work with panning & zooming!!
     // drawMarkerOnTimestamp(marker1Timestamp);
-    // function drawMarkerOnTimestamp(markerDate: Date) {
-    //   // get the axes
-    //   const valueAxis = chart.findAxisByName(TEMPERATURE);
-    //   const categoryAxis = chart.findAxisByName("categoryAxis");
 
-    //   console.log(categoryAxis);
-    //   console.log(valueAxis);
+    function drawMarkerOnTimestamp(markerDate: Date) {
+      // get the axes
+      const valueAxis = chart.findAxisByName(TEMPERATURE);
+      const categoryAxis = chart.findAxisByName("placeholderAxis");
 
-    //   // get the coordinates of the value at which the plot band will be rendered
-    //   const catergorySlot = categoryAxis.slot(markerDate);
-    //   console.log(catergorySlot);
+      console.log(categoryAxis);
+      console.log(valueAxis);
 
-    //   // get the coordinates of the entire category axis range
-    //   const range = valueAxis.range();
-    //   const valueSlot = valueAxis.slot(range.min, range.max);
-    //   console.log({ valueSlot });
-    //   // draw the plot band based on the found coordinates
-    //   const line = new Path({
-    //     stroke: {
-    //       color: "#5e5e5e",
-    //       width: 1,
-    //     },
-    //   })
-    //     .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
-    //     .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
+      // get the coordinates of the value at which the plot band will be rendered
+      const catergorySlot = categoryAxis.slot(markerDate);
+      console.log(catergorySlot);
 
-    //   const label = new Text(
-    //     "Marker1: " + marker1Timestamp.toUTCString(),
-    //     [0, 0],
-    //     {
-    //       fill: {
-    //         color: "red",
-    //       },
-    //       font: "14px sans",
-    //     }
-    //   );
-    //   const bbox = label.bbox();
-    //   label.position([
-    //     catergorySlot.origin.x + 2,
-    //     valueSlot.origin.y - bbox.size.height,
-    //   ]);
+      // get the coordinates of the entire category axis range
+      const range = valueAxis.range();
+      const valueSlot = valueAxis.slot(range.min, range.max);
+      console.log({ valueSlot });
+      // draw the plot band based on the found coordinates
+      const line = new Path({
+        stroke: {
+          color: "#5e5e5e",
+          width: 1,
+        },
+      })
+        .moveTo(catergorySlot.origin.x, catergorySlot.origin.y)
+        .lineTo(catergorySlot.origin.x, valueSlot.origin.y - 20);
 
-    //   const group = new Group();
-    //   group.append(line, label);
+      const label = new Text(
+        "Marker1: " + marker1Timestamp.toUTCString(),
+        [0, 0],
+        {
+          fill: {
+            color: "red",
+          },
+          font: "14px sans",
+        }
+      );
+      const bbox = label.bbox();
+      label.position([
+        catergorySlot.origin.x + 2,
+        valueSlot.origin.y - bbox.size.height,
+      ]);
 
-    //   // draw on the surface
-    //   chart.surface.draw(group);
-    // }
+      const group = new Group();
+      group.append(line, label);
+
+      // draw on the surface
+      chart.surface.draw(group);
+    }
 
     // Draw the names of the boolean type bars to the left of the bar
     // drawBooleanTypeSerieNames();
@@ -374,11 +397,6 @@ export const SimpleChart = () => {
 
   const onPlotAreaClick = (event: PlotAreaClickEvent) => {};
 
-  const handleCheckboxClick = (axis: string, value: boolean) => {
-    console.log(axis, value);
-    // toggle the visible property of the serie and valueAxis
-  };
-
   const handleDateChange = (event: DateRangePickerChangeEvent) => {
     console.log("handleDateChange", event.value);
     if (!!event.value.start && !!event.value.end) {
@@ -388,47 +406,67 @@ export const SimpleChart = () => {
     }
   };
 
-  const booleanChartPanes = series
-    .filter((x) => x.isBooleanTypeSerie)
-    .map((item, idx) => (
-      <ChartPane
-        key={idx}
-        name={item.axis}
-        height={BOOLEAN_TYPE_SERIE_HEIGHT}
-      />
-    ));
   const chartPanes = [
     <ChartPane key="lineChartsPane" name="lineChartsPane"></ChartPane>,
-    ...booleanChartPanes,
+    ...series
+      .filter((x) => x.isBooleanTypeSerie)
+      .map((item) => (
+        <ChartPane
+          key={item.axis}
+          name={item.axis}
+          height={BOOLEAN_TYPE_SERIE_HEIGHT}
+        />
+      )),
     <ChartPane key="placeholderPane" name="placeholderPane" height={20} />,
-    <ChartPane key="placeholderPane2" name="placeholderPane2" height={20} />,
   ];
 
-  const setDateRange = (days: number) =>
+  const setDateRange = (days: number) => {
+    const startDate = dayjs()
+      .subtract(days - 1, "day")
+      .toDate();
+    console.log({ startDate });
+
     setSelectedDate({
-      start: dayjs().subtract(days, "day").toDate(),
+      start: getStartAndEndOfDay(startDate).start,
       end: today,
     });
+  };
 
+  const customChartCategoryAxisItemProps: ChartCategoryAxisItemProps = {
+    categories: categories,
+    maxDivisions: 20, // labels on the axis
+    maxDateGroups: 20, // points on the chart
+    // baseUnit: "fit",
+    baseUnitStep: "auto",
+    majorGridLines: { visible: true },
+    min: selectedDate.start,
+    max: selectedDate.end,
+  };
+
+  const chartCategoryAxisItems = [
+    <ChartCategoryAxisItem
+      key="placeholderAxis"
+      name="placeholderAxis"
+      pane="placeholderPane" // take the last pane
+      visible={true}
+      majorTicks={{ visible: false }}
+      plotBands={plotBands}
+      {...customChartCategoryAxisItemProps}
+    />,
+    ...series
+      .filter((x) => x.isBooleanTypeSerie)
+      .map((x) => (
+        <ChartCategoryAxisItem
+          key={x.axis}
+          pane={x.axis}
+          name={x.axis}
+          visible={false}
+          {...customChartCategoryAxisItemProps}
+        />
+      )),
+  ];
   return (
     <>
-      {/* <div>
-        {series.map((el, idx) => {
-          return (
-            <div key={idx}>
-              <input
-                type="checkbox"
-                defaultChecked={true}
-                onClick={(event) =>
-                  handleCheckboxClick(el.axis!, event.currentTarget.checked)
-                }
-              ></input>
-              <label>{el.name}</label>
-            </div>
-          );
-        })}
-      </div> */}
-
       <div>
         <DateRangePicker
           min={minDateRangePickerValue}
@@ -438,11 +476,26 @@ export const SimpleChart = () => {
         />
       </div>
       <div>
-        LAST: 
-        {Array.from(Array(12)).map((x, idx) => <button onClick={() => setDateRange(idx)}>{++idx} DAY</button>)}
+        LAST:
+        {Array.from(Array(12)).map((x, idx) => (
+          <button key={idx} onClick={() => setDateRange(idx)}>
+            {++idx} DAY
+          </button>
+        ))}
         <button onClick={() => setDateRange(30)}>30 DAY</button>
+        <button
+          onClick={() =>
+            setSelectedDate({
+              start: dayjs().subtract(1, "week").toDate(),
+              end: today,
+            })
+          }
+        >
+          LAST WEEK
+        </button>
       </div>
       <Chart
+        style={{ height: 500, paddingTop: 20 }}
         transitions={true} // put to false if needed
         onPlotAreaClick={onPlotAreaClick}
         onRender={onRender}
@@ -455,53 +508,20 @@ export const SimpleChart = () => {
           },
         }}
       >
+        {/* <ChartTooltip /> */}
         <ChartPanes>{chartPanes}</ChartPanes>
         <ChartSeries>
           {series.map((item, idx) => (
-            <ChartSeriesItem key={idx} {...item} />
+            <ChartSeriesItem
+              key={idx}
+              {...item}
+              markers={{
+                visible: false,
+              }}
+            />
           ))}
         </ChartSeries>
-        <ChartCategoryAxis>
-          {[
-            <ChartCategoryAxisItem
-              key={1}
-              pane="placeholderPane" // take the last pane
-              name="categoryAxis2"
-              categories={categories}
-              // maxDivisions={12} // labels on the axis
-              // maxDateGroups={5} // points on the chart
-              baseUnit="fit"
-              // baseUnitStep="auto"
-              visible={true}
-              min={selectedDate.start}
-              max={selectedDate.end}
-            />,
-            // <ChartCategoryAxisItem
-            //   key={0}
-            //   pane="lineChartsPane"
-            //   name="categoryAxis"
-            //   categories={categories}
-            //   type="date"
-            //   plotBands={plotBands}
-            //   visible={false}
-            // />,
-            // <ChartCategoryAxisItem
-            //   key={1}
-            //   pane="placeholderPane2" // take the last pane
-            //   name="categoryAxis3"
-            //   categories={categories}
-            //   // maxDivisions={10}
-            //   // maxDateGroups={30}
-            //   baseUnit="days"
-            //   // baseUnitStep="auto"
-            //   visible={true}
-            //   min={selectedDate.start}
-            //   max={selectedDate.end}
-            //   majorGridLines={{ visible: false }}
-            //   minorGridLines={{ visible: false }}
-            // />,
-          ]}
-        </ChartCategoryAxis>
+        <ChartCategoryAxis>{chartCategoryAxisItems}</ChartCategoryAxis>
         <ChartValueAxis>
           {valueAxis.map((item, idx) => (
             <ChartValueAxisItem key={idx} {...item} />
